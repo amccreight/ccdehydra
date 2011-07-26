@@ -157,6 +157,9 @@ let nsiContentCacheEmptyExn = "Internal error: nsiContentCache is undefined.";
  * undefined if there is none.
  */
 function ptr_type_contains_help(t) {
+  if (t.typedef) {
+    return ptr_type_contains_help(t.typedef);
+  }
   if (t.isArray) {
     return ptr_type_contains_help(t.type);
   }
@@ -259,14 +262,21 @@ function is_ptr_type(t) {
 }
 
 
+function find_pointer_print (m) {
+  print("non-pointer-field: " + m.type.name + " " + m.name);
+}
+
 /**
  * Helper for find_ptrs.
  */
 function do_find_ptrs(type, ans) {
   for each (let m in type.members) {
-    if (!m.isFunction && is_ptr_type(m.type)) {
-      if (ans == undefined) ans = new Array();
+    if (m.isFunction)
+      continue;
+    if (is_ptr_type(m.type)) {
       ans.push(m);
+    } else {
+      //find_pointer_print(m);
     }
   }
   for each (let {type:b} in type.bases) {
