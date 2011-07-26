@@ -127,7 +127,7 @@ function item_items(item) {
 
 // probably want to use this again. may also need de-varianting.
 function type_search_orig(type, name) {
-  debug_print ("Shoom: " + type.name);
+  //debug_print ("Shoom: " + type.name);
   if (type.name == name && !type.parameters) return type;
   if ((type.isPointer || type.isReference) && type.type.name == name)
     return type.type;
@@ -163,7 +163,7 @@ function subtype(t1, t2) {
 
 
 function item_is_field_of (item, cls) {
-  if (item.memberOf == cls)
+  if (subtype(cls, item.memberOf))
     return item.name;
   if (item.fieldOf === undefined)
     return undefined;
@@ -242,12 +242,17 @@ function check_function(decl, body, cls, trUn) {
       print ("");
     }*/
 
-    //do_dehydra_dump(item, 0, 4);
-    //print ("");
+    /*
+    if (item.name === "nsINode::mNodeInfo") {
+      do_dehydra_dump(item, 0, 4);
+      print ("");
+    }
+    */
 
     let iname = item_is_field_of(item, cls);
     if (!iname)
       continue;
+    //debug_print (" CHAH " + iname);
     if (fields[iname] === false) {
       debug_print ("    Found " + iname + ".");
       found_any = true;
