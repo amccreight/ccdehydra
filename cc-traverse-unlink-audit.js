@@ -226,10 +226,11 @@ function check_function(decl, body, cls, trUn) {
 	item.shortName === trUn &&
 	item.memberOf !== undefined) {
       for each (let m in find_ptrs(item.memberOf.memberOf)) {
-	if (fields[m.name] != undefined) {
+	if (fields[m.name] === false) {
 	  debug_print ("    Found " + m.name + " in parent.");
 	  fields[m.name] = true;
-	}	
+	  found_any = true;
+	}
       }
     }
     
@@ -241,31 +242,18 @@ function check_function(decl, body, cls, trUn) {
       print ("");
     }*/
 
+    //do_dehydra_dump(item, 0, 4);
+    //print ("");
 
     let iname = item_is_field_of(item, cls);
-    if (!iname) {
+    if (!iname)
       continue;
-    }
-    if (fields[iname] != undefined) {
+    if (fields[iname] === false) {
       debug_print ("    Found " + iname + ".");
       found_any = true;
       fields[iname] = true;
     }
 
-    //if (item.fieldOf === undefined) continue;
-    //if (item.fieldOf.memberOf !== cls) continue;
-    //if (fields[item.name] === undefined) continue;
-    //debug_print ("    Found " + item.name + ".");
-    //fields[item.name] = true;
-
-    //if (item.fieldOf === undefined) continue;
-    //if (item.fieldOf.type === undefined) continue;
-    //if (item.fieldOf.type.type === undefined) continue;
-    //if (item.fieldOf.type.type.variantOf !== cls) continue;
-    //if (fields[item.name] != undefined) {
-    //  debug_print ("    Found " + item.name + ".");
-    //  fields[item.name] = true;
-    //}
   }
 
   if (found_any)

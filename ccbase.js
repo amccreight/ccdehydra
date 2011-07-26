@@ -220,6 +220,20 @@ function ptr_type_contains(t) {
   return i;
 }
 
+
+/*
+ * Classes we manually declare are not cycle collected.  Ideally, we
+ * would check that this actually holds, and maybe get this
+ * information directly from annotations on the files.
+ */
+let non_cc_class_whitelist =
+  {
+    "nsIURI" : true,
+    "nsIDocShell" : true,
+    "mozilla::css::Loader" : true,
+    "nsITimer" : true,
+  }
+
 /**
  * Return true if the given dehydra type object represents an XPCOM
  * pointer container type of interest to cycle collection.
@@ -227,8 +241,14 @@ function ptr_type_contains(t) {
 function is_ptr_type(t) {
   try
     {
-      return t.name != undefined &&
-	ptr_type_contains(t) != undefined;
+      if (t.name === undefined)
+	return false;
+      let tc = ptr_type_contains(t);
+      if (tc === undefined ||
+	  non_cc_class_whitelist[tc.name]) {
+	return false;
+      }
+      return true;
     }
   catch (err)
     {
