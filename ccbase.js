@@ -235,6 +235,7 @@ let non_cc_class_whitelist =
     "nsIDocShell" : true,
     "mozilla::css::Loader" : true,
     "nsITimer" : true,
+    "nsIDOMFileError" : true,
   }
 
 /**

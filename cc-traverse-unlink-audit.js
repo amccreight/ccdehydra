@@ -221,10 +221,11 @@ function check_function(decl, body, cls, trUn) {
   // Now look for references to those fields.
   for (let item in body_items(body)) {
 
-    // See if item is a call to a parent's traverse function.
+    // See if item is a call to a parent's traverse/unlink function.
     if (item.isFcall &&
 	item.shortName === trUn &&
-	item.memberOf !== undefined) {
+	item.memberOf !== undefined &&
+	item.memberOf.memberOf !== undefined) {
       for each (let m in find_ptrs(item.memberOf.memberOf)) {
 	if (fields[m.name] === false) {
 	  debug_print ("    Found " + m.name + " in parent.");

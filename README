@@ -1,6 +1,9 @@
 Static analysis of cycle collector participants in Firefox using Dehydra
 
 
+Bugzilla bug for this project, including links to Firefox issues found:
+  https://bugzilla.mozilla.org/show_bug.cgi?id=423032
+
 
 Information on installing Dehydra:
   https://developer.mozilla.org/En/Dehydra/Installing_Dehydra
