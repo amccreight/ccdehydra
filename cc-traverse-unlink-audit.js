@@ -210,7 +210,7 @@ function check_function(decl, body, cls, trUn) {
   // Map XPCOM pointer fields -> referenced or not
   let fields = new Object();
 
-  for each (let m in find_ptrs(cls)) {
+  for each (let m in find_ptrs(cls, trUn === "Unlink")) {
     fields[m.name] = false
     debug_print ("    field: " + m.name);
   }

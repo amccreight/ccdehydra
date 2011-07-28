@@ -238,18 +238,29 @@ let non_cc_class_whitelist =
     "nsIDOMFileError" : true,
   }
 
+
+let no_unlink_whitelist =
+  {
+    "nsINodeInfo" : true, // These are intentionally not unlinked in
+			  // order to keep alive ownerdocument until
+			  // the node dies.  There's a special case in
+			  // nsNodeInfoManager to ensure the document
+			  // doesn't keep itself alive.
+  }
+
 /**
  * Return true if the given dehydra type object represents an XPCOM
  * pointer container type of interest to cycle collection.
  */
-function is_ptr_type(t) {
+function is_ptr_type(t, isUnlink) {
   try
     {
       if (t.name === undefined)
 	return false;
       let tc = ptr_type_contains(t);
       if (tc === undefined ||
-	  non_cc_class_whitelist[tc.name]) {
+	  non_cc_class_whitelist[tc.name] ||
+	  (isUnlink && no_unlink_whitelist[tc.name])) {
 	return false;
       }
       return true;
@@ -270,18 +281,18 @@ function find_pointer_print (m) {
 /**
  * Helper for find_ptrs.
  */
-function do_find_ptrs(type, ans) {
+function do_find_ptrs(type, ans, isUnlink) {
   for each (let m in type.members) {
     if (m.isFunction)
       continue;
-    if (is_ptr_type(m.type)) {
+    if (is_ptr_type(m.type, isUnlink)) {
       ans.push(m);
     } else {
       //find_pointer_print(m);
     }
   }
   for each (let {type:b} in type.bases) {
-    do_find_ptrs(b, ans);
+    do_find_ptrs(b, ans, isUnlink);
   }
 }
 
@@ -290,9 +301,9 @@ function do_find_ptrs(type, ans) {
  * of a dehydra type that are cycle-collection-related pointer types.
  * See also is_ptr_type.
  */
-function find_ptrs(type) {
+function find_ptrs(type, isUnlink) {
   let ans = new Array();
-  do_find_ptrs(type, ans);
+  do_find_ptrs(type, ans, isUnlink);
   return ans;
 }
 
