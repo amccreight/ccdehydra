@@ -228,6 +228,9 @@ function ptr_type_contains(t) {
  * Classes we manually declare are not cycle collected.  Ideally, we
  * would check that this actually holds, and maybe get this
  * information directly from annotations on the files.
+ *
+ * This is basically supposed to be something like "classes with no
+ * subclasses that are NS_DECL_CYCLE_COLLECTING_ISUPPORTS".
  */
 let non_cc_class_whitelist =
   {
@@ -236,6 +239,20 @@ let non_cc_class_whitelist =
     "mozilla::css::Loader" : true,
     "nsITimer" : true,
     "nsIDOMFileError" : true,
+    "nsICharsetConverterManager" : true,
+    "nsIDocumentEncoderNodeFixup" : true,
+    "nsIContentSerializer" : true,
+       // Some subclasses of this have nsRefPtrs to Elements and some
+       // other suspicious looking things, but the subclasses
+       // themselves are not CCed.
+    "nsIOutputStream" : true,
+    "nsIUnicodeEncoder" : true,
+    "nsIAtom" : true,
+    "nsIPrincipal" : true,
+    "nsIChannel" : true, // I didn't look at all of these, but the
+			 // ones I looked at were not cycle collected.
+    "nsIDOMBlob" : true, // looks okay to me...
+    "nsIRunnable" : true, // checked a bunch, none I saw were CCed
   }
 
 
