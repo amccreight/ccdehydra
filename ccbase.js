@@ -279,6 +279,11 @@ let non_cc_class_whitelist =
 			 // ones I looked at were not cycle collected.
     "nsIDOMBlob" : true, // looks okay to me...
     "nsIRunnable" : true, // checked a bunch, none I saw were CCed
+    "nsIStructuredCloneContainer" : true,
+    "nsIApplicationCache" : true, // only one implementation, non-CCed.
+    "nsHTMLStyleSheet" : true,
+    "nsDOMStyleSheetSetList" : true,
+    "nsXMLEventsManager" : true,
   }
 
 
