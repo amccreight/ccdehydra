@@ -47,6 +47,26 @@
 
 // Generic Dehydra utilities
 
+
+let DEBUG_PRINT = true;
+
+
+/**
+ * Function for generating error output. The version with the prefix
+ * is used to allow output to be easily collected from a mixed file.
+ */
+function tprint(s) {
+  print(s);
+  //print("CCANALYZE: " + s);
+}
+
+function debug_print(s) {
+  if (DEBUG_PRINT)
+    tprint("DEBUG>> " + s);
+}
+
+
+
 /**
  * Dump a Dehydra object in a readable tree format.
  *   o        object to dump
@@ -234,6 +254,12 @@ function ptr_type_contains(t) {
  */
 let non_cc_class_whitelist =
   {
+    // some basic non-cycle collected classes
+    "nsCycleCollectingAutoRefCnt" : true,
+    "nsCString" : true,
+    "nsString" : true,
+    "nsWeakPtr" : true,
+    // mostly interfaces that seem to not have any CCed implementations
     "nsIURI" : true,
     "nsIDocShell" : true,
     "mozilla::css::Loader" : true,
@@ -267,16 +293,25 @@ let no_unlink_whitelist =
 
 /**
  * Return true if the given dehydra type object represents an XPCOM
- * pointer container type of interest to cycle collection.
+ * pointer container type of interest to cycle collection.  Return
+ * false if we're sure this is not a CC type, and undefined if we're
+ * not sure.
+ *
+ * Should probably rename this.
  */
 function is_ptr_type(t, isUnlink) {
+  if (t.precision || t.min || t.bitfieldOf)
+    return false;
   try
     {
       if (t.name === undefined)
+	return undefined;
+      if (non_cc_class_whitelist[t.name])
 	return false;
       let tc = ptr_type_contains(t);
-      if (tc === undefined ||
-	  non_cc_class_whitelist[tc.name] ||
+      if (tc === undefined)
+	return undefined;
+      if (non_cc_class_whitelist[tc.name] ||
 	  (isUnlink && no_unlink_whitelist[tc.name])) {
 	return false;
       }
@@ -291,8 +326,21 @@ function is_ptr_type(t, isUnlink) {
 }
 
 
+function type_name_string(t) {
+  if (t.isPointer) {
+    return type_name_string(t.type) + "*";
+  }
+  if (t.isReference) {
+    return type_name_string(t.type) + "&";
+  }
+  return t.name;
+}
+
+
 function find_pointer_print (m) {
-  print("non-pointer-field: " + m.type.name + " " + m.name);
+  if (DEBUG_PRINT) {
+    debug_print("    skipping: " + type_name_string(m.type));
+  }
 }
 
 /**
@@ -302,11 +350,12 @@ function do_find_ptrs(type, ans, isUnlink) {
   for each (let m in type.members) {
     if (m.isFunction)
       continue;
-    if (is_ptr_type(m.type, isUnlink)) {
+    // should convert this to yield instead of stuffing into an array
+    let ipt = is_ptr_type(m.type, isUnlink);
+    if (ipt)
       ans.push(m);
-    } else {
-      //find_pointer_print(m);
-    }
+    else if (ipt === undefined)
+      find_pointer_print(m);
   }
   for each (let {type:b} in type.bases) {
     do_find_ptrs(b, ans, isUnlink);

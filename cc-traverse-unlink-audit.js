@@ -56,26 +56,6 @@
 include('../ccdehydra/ccbase.js')
 
 
-let DEBUG_PRINT = true;
-
-
-
-/**
- * Function for generating error output. The version with the prefix
- * is used to allow output to be easily collected from a mixed file.
- */
-function tprint(s) {
-  print(s);
-  //print("CCANALYZE: " + s);
-}
-
-
-function debug_print(s) {
-  if (DEBUG_PRINT)
-    tprint("DEBUG>> " + s);
-}
-
-
 
 // General functions for navigating Dehydra data
 // See also http://wiki.mozilla.org/Dehydra_API
@@ -164,23 +144,12 @@ function subtype(t1, t2) {
 
 function item_is_field_of (item, cls) {
   if (subtype(cls, item.memberOf))
-    return item.name;
+    return true;
   if (item.fieldOf === undefined)
-    return undefined;
+    return false;
   if (item.fieldOf.memberOf !== cls)
-    return undefined;
-
-  return item.name;
-
-  //if (item.fieldOf === undefined) continue;
-  //if (item.fieldOf.type === undefined) continue;
-  //if (item.fieldOf.type.type === undefined) continue;
-  //if (item.fieldOf.type.type.variantOf !== cls) continue;
-  //if (fields[item.name] != undefined) {
-  //  debug_print ("    Found " + item.name + ".");
-  //  fields[item.name] = true;
-  //}
-
+    return false;
+  return true;
 }
 
 
@@ -204,6 +173,16 @@ function process_function(decl, body) {
 }
 
 
+// give a shorter name if a field comes from the current class
+function field_name (cname, m) {
+  if (m.name.indexOf(cname + "::") === 0) {
+    return m.shortName;
+  } else {
+    return m.name;
+  }
+}
+
+
 function check_function(decl, body, cls, trUn) {
   debug_print("Checking " + trUn + " for class " + cls.name + ".");
   // Build the list of fields in the desired class.
@@ -212,7 +191,7 @@ function check_function(decl, body, cls, trUn) {
 
   for each (let m in find_ptrs(cls, trUn === "Unlink")) {
     fields[m.name] = false
-    debug_print ("    field: " + m.name);
+    debug_print ("    field: " + field_name(cls.name, m));
   }
 
   let found_any = false;
@@ -228,7 +207,7 @@ function check_function(decl, body, cls, trUn) {
 	item.memberOf.memberOf !== undefined) {
       for each (let m in find_ptrs(item.memberOf.memberOf)) {
 	if (fields[m.name] === false) {
-	  debug_print ("    Found " + m.name + " in parent.");
+	  debug_print ("    found " + m.name + " in parent");
 	  fields[m.name] = true;
 	  found_any = true;
 	}
@@ -250,14 +229,12 @@ function check_function(decl, body, cls, trUn) {
     }
     */
 
-    let iname = item_is_field_of(item, cls);
-    if (!iname)
+    if (!item_is_field_of(item, cls))
       continue;
-    //debug_print (" CHAH " + iname);
-    if (fields[iname] === false) {
-      debug_print ("    Found " + iname + ".");
+    if (fields[item.name] === false) {
+      debug_print ("    found " + field_name(cls.name, item));
       found_any = true;
-      fields[iname] = true;
+      fields[item.name] = true;
     }
 
   }
