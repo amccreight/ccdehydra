@@ -199,6 +199,9 @@ function ptr_type_contains_help(t) {
   if (t.typedef) {
     return ptr_type_contains_help(t.typedef);
   }
+  //if (t.variantOf) {
+  //  return ptr_type_contains_help(t.variantOf);
+  //}
   if (t.isArray) {
     return ptr_type_contains_help(t.type);
   }
@@ -277,13 +280,13 @@ let non_cc_class_whitelist =
   {
     // some basic non-cycle collected classes
     "nsCycleCollectingAutoRefCnt" : true,
+    "nsAutoRefCnt" : true,
     "nsCString" : true,
     "nsString" : true,
     "nsWeakPtr" : true,
-    // mostly interfaces that seem to not have any CCed implementations
+    // interfaces that seem to not have any CCed implementations
     "nsIURI" : true,
     "nsIDocShell" : true,
-    "mozilla::css::Loader" : true,
     "nsITimer" : true,
     "nsIDOMFileError" : true,
     "nsICharsetConverterManager" : true,
@@ -302,9 +305,12 @@ let non_cc_class_whitelist =
     "nsIRunnable" : true, // checked a bunch, none I saw were CCed
     "nsIStructuredCloneContainer" : true,
     "nsIApplicationCache" : true, // only one implementation, non-CCed.
+    // individual classes that aren't cycle collected
+    "mozilla::css::Loader" : true,
     "nsHTMLStyleSheet" : true,
     "nsDOMStyleSheetSetList" : true,
     "nsXMLEventsManager" : true,
+    "nsAnonDivObserver" : true,
   }
 
 
