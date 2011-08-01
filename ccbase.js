@@ -311,6 +311,7 @@ let non_cc_class_whitelist =
     "nsDOMStyleSheetSetList" : true,
     "nsXMLEventsManager" : true,
     "nsAnonDivObserver" : true,
+    "SelectionState" : true,
   }
 
 
@@ -371,7 +372,14 @@ function type_name_string(t) {
 
 function find_pointer_print (m) {
   if (DEBUG_PRINT) {
-    debug_print("    -- " + type_name_string(m.type));
+    // Filter out a few common weird failure cases.  Probably dumb to
+    // have it here, but oh well, good enough for now.
+    let t = m.type;
+    let temp = t.template;
+    if (temp.name === 'nsAutoPtr' &&
+	non_cc_class_whitelist[temp.arguments[0].name])
+      return;
+    debug_print("    -- " + type_name_string(t));
   }
 }
 
