@@ -172,6 +172,25 @@ let nsiContentCache = undefined;
 let nsiContentCacheEmptyExn = "Internal error: nsiContentCache is undefined.";
 
 
+/* Dig around in nsAttrChildArray for nsIContent.  This is really
+ * fragile.
+ *
+ * Should this somehow also return nsAttrValue?
+ */
+function nsAttrAndChildArray_contains(t) {
+  for each (let m in t.members) {
+    if (!m.isFunction)
+      continue;
+    if (m.name !== "nsAttrAndChildArray::ChildAt(PRUint32) const")
+      continue;
+    if (m.type.type.type === undefined)
+      throw "nsAttrAndChildArray_contains was going to return undefined";
+    return m.type.type.type;
+  }
+  throw "nsAttrAndChildArray_contains didn't find ChildAt";
+}
+
+
 /*
  * Return the type referred to via a reference counted container, or
  * undefined if there is none.
@@ -185,6 +204,8 @@ function ptr_type_contains_help(t) {
   }
   let temp = t.template;
   if (temp === undefined) {
+    if (t.name === "nsAttrAndChildArray")
+      return nsAttrAndChildArray_contains(t);
     return undefined;
   }
 
