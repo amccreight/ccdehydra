@@ -344,38 +344,28 @@ function type_name_string(t) {
 
 function find_pointer_print (m) {
   if (DEBUG_PRINT) {
-    debug_print("    skipping: " + type_name_string(m.type));
+    debug_print("    -- " + type_name_string(m.type));
   }
 }
 
 /**
- * Helper for find_ptrs.
- */
-function do_find_ptrs(type, ans, isUnlink) {
-  for each (let m in type.members) {
-    if (m.isFunction)
-      continue;
-    // should convert this to yield instead of stuffing into an array
-    let ipt = is_ptr_type(m.type, isUnlink);
-    if (ipt)
-      ans.push(m);
-    else if (ipt === undefined)
-      find_pointer_print(m);
-  }
-  for each (let {type:b} in type.bases) {
-    do_find_ptrs(b, ans, isUnlink);
-  }
-}
-
-/**
- * Return an array of dehydra member objects for all the member fields
+ * Generate dehydra member objects for all the member fields
  * of a dehydra type that are cycle-collection-related pointer types.
  * See also is_ptr_type.
  */
 function find_ptrs(type, isUnlink) {
-  let ans = new Array();
-  do_find_ptrs(type, ans, isUnlink);
-  return ans;
+  for each (let m in type.members) {
+    if (m.isFunction)
+      continue;
+    let ipt = is_ptr_type(m.type, isUnlink);
+    if (ipt)
+      yield m;
+    else if (ipt === undefined)
+      find_pointer_print(m);
+  }
+  for each (let {type:b} in type.bases)
+    for (let t in find_ptrs(b, isUnlink))
+      yield t
 }
 
 

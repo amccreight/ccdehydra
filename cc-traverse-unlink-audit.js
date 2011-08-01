@@ -189,9 +189,9 @@ function check_function(decl, body, cls, trUn) {
   // Map XPCOM pointer fields -> referenced or not
   let fields = new Object();
 
-  for each (let m in find_ptrs(cls, trUn === "Unlink")) {
+  for (let m in find_ptrs(cls, trUn === "Unlink")) {
     fields[m.name] = false
-    debug_print ("    field: " + field_name(cls.name, m));
+    debug_print ("    ++ " + field_name(cls.name, m));
   }
 
   let found_any = false;
@@ -205,7 +205,7 @@ function check_function(decl, body, cls, trUn) {
 	item.shortName === trUn &&
 	item.memberOf !== undefined &&
 	item.memberOf.memberOf !== undefined) {
-      for each (let m in find_ptrs(item.memberOf.memberOf)) {
+      for (let m in find_ptrs(item.memberOf.memberOf)) {
 	if (fields[m.name] === false) {
 	  debug_print ("    found " + m.name + " in parent");
 	  fields[m.name] = true;
