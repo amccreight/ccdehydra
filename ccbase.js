@@ -305,6 +305,8 @@ let non_cc_class_whitelist =
     "nsIRunnable" : true, // checked a bunch, none I saw were CCed
     "nsIStructuredCloneContainer" : true,
     "nsIApplicationCache" : true, // only one implementation, non-CCed.
+    "nsIDOMFile" : true,
+    "imgIRequest" : true,
     // individual classes that aren't cycle collected
     "mozilla::css::Loader" : true,
     "nsHTMLStyleSheet" : true,
@@ -312,6 +314,8 @@ let non_cc_class_whitelist =
     "nsXMLEventsManager" : true,
     "nsAnonDivObserver" : true,
     "SelectionState" : true,
+    "nsDOMValidityState" : true,
+    "nsDOMFileList" : true,
   }
 
 
@@ -376,9 +380,14 @@ function find_pointer_print (m) {
     // have it here, but oh well, good enough for now.
     let t = m.type;
     let temp = t.template;
-    if (temp.name === 'nsAutoPtr' &&
-	non_cc_class_whitelist[temp.arguments[0].name])
-      return;
+    if (temp) {
+      if (temp.name === 'nsAutoPtr' &&
+	  is_ptr_type(temp.arguments[0]) === false)
+	return;
+      if (temp.name === 'nsDataHashtable' &&
+	  is_ptr_type(temp.arguments[1]) === false)
+	return;
+    }
     debug_print("    -- " + type_name_string(t));
   }
 }
