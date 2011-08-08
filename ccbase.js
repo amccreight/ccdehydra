@@ -175,6 +175,8 @@ let nsiContentCacheEmptyExn = "Internal error: nsiContentCache is undefined.";
 /* Dig around in nsAttrChildArray for nsIContent.  This is really
  * fragile.
  *
+ * Could memoize the result.
+ *
  * Should this somehow also return nsAttrValue?
  */
 function nsAttrAndChildArray_contains(t) {
@@ -305,7 +307,7 @@ let non_cc_class_whitelist =
     "nsIRunnable" : true, // checked a bunch, none I saw were CCed
     "nsIStructuredCloneContainer" : true,
     "nsIApplicationCache" : true, // only one implementation, non-CCed.
-    "nsIDOMFile" : true,
+    //"nsIDOMFile" : true,  Bug 664467 added a traverse for this type
     "imgIRequest" : true,
     // individual classes that aren't cycle collected
     "mozilla::css::Loader" : true,
@@ -315,7 +317,7 @@ let non_cc_class_whitelist =
     "nsAnonDivObserver" : true,
     "SelectionState" : true,
     "nsDOMValidityState" : true,
-    "nsDOMFileList" : true,
+    // "nsDOMFileList" : true,  Bug 664467 added a traverse for this type
   }
 
 
@@ -388,7 +390,7 @@ function find_pointer_print (m) {
 	  is_ptr_type(temp.arguments[1]) === false)
 	return;
     }
-    debug_print("    -- " + type_name_string(t));
+    debug_print("    -- " + type_name_string(t) + " " + m.shortName);
   }
 }
 

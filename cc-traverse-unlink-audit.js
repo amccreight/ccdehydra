@@ -183,17 +183,35 @@ function field_name (cname, m) {
 }
 
 
-function check_function(decl, body, cls, trUn) {
-  debug_print("Checking " + trUn + " for class " + cls.name + ".");
-  // Build the list of fields in the desired class.
-  // Map XPCOM pointer fields -> referenced or not
-  let fields = new Object();
+function analyze_parent_call (parent, fields) {
+  let found_any = false;
+  for (let m in find_ptrs(parent)) {
+    if (fields[m.name] === false) {
+      debug_print ("    found " + m.name + " in parent");
+      fields[m.name] = true;
+      found_any = true;
+    }
+  }
+  return found_any;
+}
 
+
+// Build the list of fields in the desired class.
+// Map XPCOM pointer fields -> referenced or not
+function expected_fields(cls, trUn) {
+  let fields = new Object();
   for (let m in find_ptrs(cls, trUn === "Unlink")) {
     fields[m.name] = false
     debug_print ("    ++ " + field_name(cls.name, m));
   }
 
+  return fields;
+}
+
+
+function check_function(decl, body, cls, trUn) {
+  debug_print("Checking " + trUn + " for class " + cls.name + ".");
+  let fields = expected_fields(cls, trUn);
   let found_any = false;
   debug_print("");
 
@@ -205,30 +223,9 @@ function check_function(decl, body, cls, trUn) {
 	item.shortName === trUn &&
 	item.memberOf !== undefined &&
 	item.memberOf.memberOf !== undefined) {
-      for (let m in find_ptrs(item.memberOf.memberOf)) {
-	if (fields[m.name] === false) {
-	  debug_print ("    found " + m.name + " in parent");
-	  fields[m.name] = true;
-	  found_any = true;
-	}
-      }
+      found_any |= analyze_parent_call(item.memberOf.memberOf, fields);
     }
     
-      /*
-    if (cls.name === "NotificationController" &&
-	item.shortName === "mHangingChildDocuments") {
-      //print ("flint: " + (item.memberOf === cls));
-      do_dehydra_dump(item, 0, 4);
-      print ("");
-    }*/
-
-    /*
-    if (item.name === "nsINode::mNodeInfo") {
-      do_dehydra_dump(item, 0, 4);
-      print ("");
-    }
-    */
-
     if (!item_is_field_of(item, cls))
       continue;
     if (fields[item.name] === false) {
