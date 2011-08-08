@@ -209,6 +209,32 @@ function expected_fields(cls, trUn) {
 }
 
 
+function check_inherited_function(parent, cls, trUn) {
+  debug_print("Checking inherited " + trUn + " for class " + cls.name + ".");
+  let fields = expected_fields(cls, trUn);
+  debug_print("");
+  let found_any = analyze_parent_call(parent, fields);
+  if (found_any)
+    debug_print("");
+
+  // Now copy answers into an array and print
+  let unrefed = new Array();
+  for (let [name,b] in Iterator(fields)) {
+    if (!b) unrefed.push(name);
+  }
+
+  if (unrefed.length) {
+    unrefed.sort();
+    tprint("Unrefed fields in inherited " + trUn + " for class " + cls.name + ":");
+    for each (let name in unrefed) {
+      tprint("    " + name);
+    }
+    tprint("");
+  }
+
+}
+
+
 function check_function(decl, body, cls, trUn) {
   debug_print("Checking " + trUn + " for class " + cls.name + ".");
   let fields = expected_fields(cls, trUn);
@@ -253,6 +279,17 @@ function check_function(decl, body, cls, trUn) {
       tprint("    " + name);
     }
     tprint("");
+  }
+
+  // test harness for check_inherited
+  if (cls.name === "nsHTMLInputElement") {
+    for each (let {type:parent} in cls.bases) {
+      // how can we figure this out?
+      if (parent.name === "nsGenericHTMLFormElement") {
+	check_inherited_function(parent, cls, "Unlink");
+	break;
+      }
+    }
   }
 
 }
