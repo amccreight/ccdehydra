@@ -140,12 +140,34 @@ function is_cc_inner_class_base(t) {
 }
 
 
+function is_nsISupports(t)
+{
+  let name = t.name;
+  if (name === undefined)
+    return false;
+  if (t.typedef !== undefined)
+    return is_nsISupports(t.typedef);
+  if (name === 'nsISupports')
+    return true;
+
+  for each (let {type:base} in t.bases) {
+    if (base.name === undefined) {
+      throw Error("Nameless type on a subcall.");
+    }
+    if (is_nsISupports(base))
+      return true;
+  }
+
+  return false;
+}
+
+
 // I'm assuming cycle collection inner classes have only a single super class
 function is_cc_inner_class_parent (t) {
   if (t.name === undefined)
     return false;
   if (t.typedef !== undefined)
-    return interesting_type(t.typedef);
+    return is_nsISupports(t.typedef);
   if (is_cc_inner_class_base(t))
     return true;
   if (t.bases === undefined || t.bases.length !== 1)

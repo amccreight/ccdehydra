@@ -153,6 +153,54 @@ function item_is_field_of (item, cls) {
 }
 
 
+/*
+ * If t is a cycle collector inner class lacking a Traverse or Unlink,
+ * do an inherited analysis of the missing method.
+ */
+function process_type(t) {
+  if (!is_cc_inner_class(t))
+    return;
+  let has_traverse = false;
+  let has_unlink = false;
+  for each (let m in t.members) {
+    if (!m.isFunction)
+      continue;
+    if (m.shortName === "Traverse") {
+      has_traverse = true;
+      continue;
+    }
+    if (m.shortName === "Unlink") {
+      has_unlink = true;
+      continue
+    }
+  }
+
+  if (!has_traverse || !has_unlink) {
+    if (t.bases === undefined || t.bases.length !== 1) {
+      throw Error("Expected cycle collector class " + t.name +
+		  " to have exactly one parent.");
+    }
+    let parent = t.bases[0].type.memberOf;
+    if (parent === undefined) {
+      // This could probably happen, if the parent of the inner cycle
+      // collector class is something like
+      // nsXPCOMCycleCollectionParticipant, but just give up for now.
+
+      // If that actually happens, probably should check that the name
+      // of the parent cycle collector class is one of the classes we
+      // expected.  Then we need to change check_inherited_function to
+      // treat an undefined parent as undefined, which should be easy.
+      throw Error ("Expected cycle collector class parent to be a member " +
+		   "of another class.");
+    }
+
+    if (!has_traverse)
+      check_inherited_function(parent, t.memberOf, "Traverse");
+    if (!has_unlink)
+      check_inherited_function(parent, t.memberOf, "Unlink");
+  }
+}
+
 
 /**
  * Regular expression for finding cycle collector inner classes.
@@ -167,7 +215,7 @@ function process_function(decl, body) {
   if (decl.memberOf.kind != "class")
     return;
   let match = method_rexp.exec(decl.memberOf.name);
-  if (match == null)
+  if (match === null)
     return;
   check_function(decl, body, decl.memberOf.memberOf, decl.shortName);
 }
@@ -227,6 +275,7 @@ function check_inherited_function(parent, cls, trUn) {
     unrefed.sort();
     tprint("Unrefed fields in inherited " + trUn + " for class " + cls.name + ":");
     for each (let name in unrefed) {
+      // should really strip down the name a bit
       tprint("    " + name);
     }
     tprint("");
@@ -276,20 +325,10 @@ function check_function(decl, body, cls, trUn) {
     tprint("Unrefed fields in " + decl.name + ":");
     tprint("  (" + decl.loc + ")");
     for each (let name in unrefed) {
+      // should really strip down the name a bit
       tprint("    " + name);
     }
     tprint("");
-  }
-
-  // test harness for check_inherited
-  if (cls.name === "nsHTMLInputElement") {
-    for each (let {type:parent} in cls.bases) {
-      // how can we figure this out?
-      if (parent.name === "nsGenericHTMLFormElement") {
-	check_inherited_function(parent, cls, "Unlink");
-	break;
-      }
-    }
   }
 
 }
