@@ -154,6 +154,20 @@ function item_is_field_of (item, cls) {
 
 
 /*
+ * Because the inherited analysis looks at header files, it can be
+ * very spammy.  As a quick hack, we define classes that we know have
+ * bad inherited classes, and print a debug message instead of
+ * analyzing them.  I'm not going to bother with everything here, but
+ * I'll add a few of the worst offenders.
+ */
+let known_bad_inherited =
+  {
+    "nsGenericHTMLFrameElement" : true,
+    "nsHTMLFormElement" : true
+  }
+
+
+/*
  * If t is a cycle collector inner class lacking a Traverse or Unlink,
  * do an inherited analysis of the missing method.
  */
@@ -162,6 +176,7 @@ function process_type(t) {
     return;
   let has_traverse = false;
   let has_unlink = false;
+
   for each (let m in t.members) {
     if (!m.isFunction)
       continue;
@@ -176,6 +191,14 @@ function process_type(t) {
   }
 
   if (!has_traverse || !has_unlink) {
+    let cls = t.memberOf;
+
+    if (known_bad_inherited[cls.name]) {
+      debug_print("Skipping class " + cls.name + " with known bad inherited.");
+      debug_print("");
+      return;
+    }
+
     if (t.bases === undefined || t.bases.length !== 1) {
       throw Error("Expected cycle collector class " + t.name +
 		  " to have exactly one parent.");
@@ -195,9 +218,9 @@ function process_type(t) {
     }
 
     if (!has_traverse)
-      check_inherited_function(parent, t.memberOf, "Traverse");
+      check_inherited_function(parent, cls, "Traverse");
     if (!has_unlink)
-      check_inherited_function(parent, t.memberOf, "Unlink");
+      check_inherited_function(parent, cls, "Unlink");
   }
 }
 
@@ -274,6 +297,7 @@ function check_inherited_function(parent, cls, trUn) {
   if (unrefed.length) {
     unrefed.sort();
     tprint("Unrefed fields in inherited " + trUn + " for class " + cls.name + ":");
+    tprint("  (" + cls.loc + ")");
     for each (let name in unrefed) {
       // should really strip down the name a bit
       tprint("    " + name);
