@@ -256,8 +256,8 @@ function field_name (cname, m) {
 
 function analyze_parent_call (parent, fields) {
   let found_any = false;
-  for (let m in find_ptrs(parent)) {
-    if (fields[m.name] === false) {
+  for (let {field:m, certain:cert} in find_ptrs(parent)) {
+    if (cert && fields[m.name] === false) {
       debug_print ("    found " + m.name + " in parent");
       fields[m.name] = true;
       found_any = true;
@@ -271,18 +271,25 @@ function analyze_parent_call (parent, fields) {
 // Map XPCOM pointer fields -> referenced or not
 function expected_fields(cls, trUn) {
   let fields = new Object();
-  for (let m in find_ptrs(cls, trUn === "Unlink")) {
-    fields[m.name] = false
-    debug_print ("    ++ " + field_name(cls.name, m));
+  let odd_fields = new Object();
+  for (let {field:m, certain:cert} in find_ptrs(cls, trUn === "Unlink")) {
+    if (cert) {
+      fields[m.name] = false;
+      debug_print ("    ++ " + field_name(cls.name, m));
+    } else {
+      odd_fields[m.name] = false;
+      debug_print("    -- " + type_name_string(m.type) + " " + field_name(cls.name, m));
+    }
   }
 
-  return fields;
+  return {expected:fields, unexpected:odd_fields};
 }
 
 
 function check_inherited_function(parent, cls, trUn) {
   debug_print("Checking inherited " + trUn + " for class " + cls.name + ".");
-  let fields = expected_fields(cls, trUn);
+  let {expected:fields} = expected_fields(cls, trUn);
+  // no need to check unexpected fields here, as we're not visiting any
   debug_print("");
   let found_any = analyze_parent_call(parent, fields);
   if (found_any)
@@ -310,7 +317,7 @@ function check_inherited_function(parent, cls, trUn) {
 
 function check_function(decl, body, cls, trUn) {
   debug_print("Checking " + trUn + " for class " + cls.name + ".");
-  let fields = expected_fields(cls, trUn);
+  let {expected:fields, unexpected:odd_fields} = expected_fields(cls, trUn);
   let found_any = false;
   debug_print("");
 
@@ -331,6 +338,10 @@ function check_function(decl, body, cls, trUn) {
       debug_print ("    found " + field_name(cls.name, item));
       found_any = true;
       fields[item.name] = true;
+    } else if (odd_fields[item.name] === false) {
+      debug_print ("    found unexpected field " + field_name(cls.name, item));
+      found_any = true;
+      odd_fields[item.name] = true;
     }
 
   }

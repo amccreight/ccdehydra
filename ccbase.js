@@ -340,6 +340,7 @@ let non_cc_class_whitelist =
     "SelectionState" : true,
     "nsDOMValidityState" : true,
     // "nsDOMFileList" : true,  Bug 664467 added a traverse for this type
+    "nsDOMSettableTokenList" : true,
   }
 
 
@@ -398,23 +399,20 @@ function type_name_string(t) {
 }
 
 
-function find_pointer_print (m) {
-  if (DEBUG_PRINT) {
-    // Filter out a few common weird failure cases.  Probably dumb to
-    // have it here, but oh well, good enough for now.
-    let t = m.type;
-    let temp = t.template;
-    if (temp) {
-      if (temp.name === 'nsAutoPtr' &&
-	  is_ptr_type(temp.arguments[0]) === false)
-	return;
-      if (temp.name === 'nsDataHashtable' &&
-	  is_ptr_type(temp.arguments[1]) === false)
-	return;
-    }
-    debug_print("    -- " + type_name_string(t) + " " + m.shortName);
+// is_ptr_type doesn't handle a few common nested cases correctly
+function ptr_actually_ok (t) {
+  let temp = t.template;
+  if (temp) {
+    if (temp.name === 'nsAutoPtr' &&
+	is_ptr_type(temp.arguments[0]) === false)
+      return true;
+    if (temp.name === 'nsDataHashtable' &&
+	is_ptr_type(temp.arguments[1]) === false)
+      return true;
   }
+  return false;
 }
+
 
 /**
  * Generate dehydra member objects for all the member fields
@@ -427,9 +425,10 @@ function find_ptrs(type, isUnlink) {
       continue;
     let ipt = is_ptr_type(m.type, isUnlink);
     if (ipt)
-      yield m;
-    else if (ipt === undefined)
-      find_pointer_print(m);
+      yield {field : m, certain:true};
+    else if (ipt === undefined && !ptr_actually_ok(m.type)) {
+      yield {field : m, certain:false};
+    }
   }
   for each (let {type:b} in type.bases)
     for (let t in find_ptrs(b, isUnlink))
