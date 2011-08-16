@@ -341,6 +341,7 @@ let non_cc_class_whitelist =
     "nsDOMValidityState" : true,
     // "nsDOMFileList" : true,  Bug 664467 added a traverse for this type
     "nsDOMSettableTokenList" : true,
+    "nsSelectState" : true,
   }
 
 
