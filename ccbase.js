@@ -303,45 +303,40 @@ function ptr_type_contains(t) {
 let non_cc_class_whitelist =
   {
     // some basic non-cycle collected classes
-    "nsCycleCollectingAutoRefCnt" : true,
-    "nsAutoRefCnt" : true,
-    "nsCString" : true,
-    "nsString" : true,
-    "nsWeakPtr" : true,
-    // interfaces that seem to not have any CCed implementations
-    "nsIURI" : true,
-    "nsIDocShell" : true,
-    "nsITimer" : true,
-    "nsIDOMFileError" : true,
-    "nsICharsetConverterManager" : true,
-    "nsIDocumentEncoderNodeFixup" : true,
-    "nsIContentSerializer" : true,
-       // Some subclasses of this have nsRefPtrs to Elements and some
-       // other suspicious looking things, but the subclasses
-       // themselves are not CCed.
-    "nsIOutputStream" : true,
-    "nsIUnicodeEncoder" : true,
-    "nsIAtom" : true,
-    "nsIPrincipal" : true,
-    "nsIChannel" : true, // I didn't look at all of these, but the
-			 // ones I looked at were not cycle collected.
-    "nsIDOMBlob" : true, // looks okay to me...
-    "nsIRunnable" : true, // checked a bunch, none I saw were CCed
-    "nsIStructuredCloneContainer" : true,
-    "nsIApplicationCache" : true, // only one implementation, non-CCed.
-    //"nsIDOMFile" : true,  Bug 664467 added a traverse for this type
-    "imgIRequest" : true,
+    "nsCycleCollectingAutoRefCnt" : "peterv",
+    "nsAutoRefCnt" : "peterv",
+    "nsCString"    : "peterv",
+    "nsString"     : "peterv",
+    "nsWeakPtr"    : "peterv",
+
     // individual classes that aren't cycle collected
-    "mozilla::css::Loader" : true,
-    "nsHTMLStyleSheet" : true,
-    "nsDOMStyleSheetSetList" : true,
-    "nsXMLEventsManager" : true,
-    "nsAnonDivObserver" : true,
-    "SelectionState" : true,
-    "nsDOMValidityState" : true,
-    // "nsDOMFileList" : true,  Bug 664467 added a traverse for this type
+    "nsDOMStyleSheetSetList" : "peterv", // with new DOM bindings, needs Traverse
+    "mozilla::css::Loader"   : "mccr8",
+    "nsHTMLStyleSheet"       : "mccr8",
+    "nsXMLEventsManager"     : "mccr8",
+    "nsAnonDivObserver"      : "mccr8",
+    "SelectionState"         : "mccr8",
+    "nsDOMValidityState"     : "mccr8",
     "nsDOMSettableTokenList" : true,
-    "nsSelectState" : true,
+    "nsSelectState"          : true,
+
+    // interfaces that seem to not have any CCed implementations
+    "nsIDocShell"                 : "smaug",
+    "nsITimer"                    : "smaug",
+    "nsIDOMFileError"             : "smaug",
+    "nsICharsetConverterManager"  : "smaug",
+    "nsIContentSerializer"        : "smaug",
+    "nsIAtom"                     : "smaug",
+    "nsIStructuredCloneContainer" : "smaug",
+    "nsIOutputStream"     : "bz",
+    "nsIUnicodeEncoder"   : "bz",
+    "nsIRequest"          : "bz",
+    "nsIChannel"          : "bz",
+    "nsIApplicationCache" : "bz",
+    "nsIDOMBlob" : "khuey",
+
+    "nsIDOMFile" : "smaug", // might be needed in the future
+    "nsDOMFileList" : "smaug", // might be needed in the future
   }
 
 
@@ -353,6 +348,79 @@ let no_unlink_whitelist =
 			  // nsNodeInfoManager to ensure the document
 			  // doesn't keep itself alive.
   }
+
+
+/*
+
+FEEDBACK
+
+sicking:
+  nsIInterfaceRequestor
+  nsIAsyncVerifyRedirectCallback
+
+  These are only briefly non-null in content/base/src/nsXMLHttpRequest,
+  but sicking says that we should Traverse, but not Unlink them, because
+  it won't be much problem.  Add to no_unlink_whitelist.
+
+bz:
+  nsIURI, nsIPrincipal: probably should be cycle collected, though mostly 
+    they are leaves.
+  imgIRequest: should be CCed
+
+  nsIRequest, nsIChannel: "These are generally not main-thread-only, sort of.
+    Worth checking with the necko folks."
+
+  nsIRunnable: "These are often used to post events
+    cross-thread.... though sometimes they can be same-thread too.  CC
+    should probably happen on a case by case basis."
+
+peterv:
+
+  nsIObserver: Is it okay to skip this?  "Normally it isn't, since
+    these fields could hold a nsGlobalWindow, right? It might be that
+    we've determined that they never hold a nsGlobalWindow, but that's
+    usually hard to enforce. On the other hand, there are probably a
+    lot of nsIObserver implementations so this might end up adding CC
+    to a ton of other classes."
+
+smaug:
+
+  nsIDocumentEncoderNodeFixup: "In theory extensions could implement
+    nsIDocumentEncoderNodeFixup and use with DocumentEncoder.
+    DocumentEncoder should traverse/unlink mNodeFixup because of that.
+    The in-tree implementation should be safe."
+
+  nsIDocShell: "I wouldn't bother [traversing or unlinking] right
+    now. Docshell shouldn't really create cycles atm, since docshells
+    create a tree, where parent owns children.  The tree is also
+    manually destroyed in the needed places.  There has been few leaks
+    related to this, but in no cases would traversing/unlinking have
+    helped, IIRC.
+
+    jst: "Uh, nsIDocShell is still used on other threads than the main
+    thread, so we can't properly cycle collect it even though we'd
+    really want to.  There's bugs, and I think Brian Smith is actively
+    working on removing the remaining off-main-thread usages here, so
+    some day we might be able to. I have a vague memory of hearing
+    some people still traversing nsIDocShell members in preparation
+    for when we actually cycle collect them, but I'm short on
+    specifics on this topic.
+
+  nsIDOMFile, nsDOMFileList: "As of now traversing/unlinking those
+    isn't needed.  I added them because of
+    https://bugzilla.mozilla.org/show_bug.cgi?id=664467#c1 "
+
+ */
+
+
+/* This function is sketchy: it relies on process_type saving away
+ * classes that are found to be cycle collected, and that we always
+ * determine accurately if t is cycle collected by the time we run
+ * this.
+ */
+function concrete_cc_class (t) {
+  return (!is_abstract(t) && t.is_incomplete === false && is_cc(t));
+}
 
 /**
  * Return true if the given dehydra type object represents an XPCOM
@@ -375,6 +443,7 @@ function is_ptr_type(t, isUnlink) {
       if (tc === undefined)
 	return undefined;
       if (non_cc_class_whitelist[tc.name] ||
+	  //concrete_cc_class(t) ||   hmm I am not sure what to think of this
 	  (isUnlink && no_unlink_whitelist[tc.name])) {
 	return false;
       }
