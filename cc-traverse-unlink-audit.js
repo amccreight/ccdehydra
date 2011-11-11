@@ -174,6 +174,8 @@ let known_bad_inherited =
 function process_type(t) {
   if (!is_cc_inner_class(t))
     return;
+  cctypes.push(t.memberOf);
+
   let has_traverse = false;
   let has_unlink = false;
 
