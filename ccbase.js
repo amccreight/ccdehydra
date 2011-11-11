@@ -124,8 +124,10 @@ function dehydra_dump(o) {
 
 
 // Array of classes with cycle collector participant inner classes.
+// These are discovered during analysis and added here.
 let cctypes = [];
 
+// Return true if this is a previously discovered CCed class.
 function is_cc(t) {
   if (cctypes.some(function (u) u === t))
     return true;

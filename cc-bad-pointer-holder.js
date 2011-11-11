@@ -36,6 +36,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/*
+
+ This file hasn't been updated in a while, and probably doesn't work very well.
+
+ */
 
 /** 
  * Dehydra script

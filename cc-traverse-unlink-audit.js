@@ -47,6 +47,11 @@
  *
  * The output is, for each found class method, the method name (including
  * owning class) and the pointer fields not touched.
+ *
+ * There is a bunch of debugging output when things confuse the
+ * analysis.  The general philosophy is that if the analysis isn't
+ * really sure something can be skipped, some kind of output should be
+ * produced indicating the confusion.
  */
 
 "use strict";
